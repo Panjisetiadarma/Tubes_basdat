@@ -68,10 +68,10 @@ function start_session() {
 }
 
 // Fungsi untuk cek apakah user sudah login
-function is_logged_in() {
-    start_session();
-    return isset($_SESSION['user_id']);
-}
+// function is_logged_in() {
+//     start_session();
+//     return isset($_SESSION['user_id']);
+// }
 
 // Fungsi untuk mendapatkan user yang sedang login
 function get_logged_in_user() {

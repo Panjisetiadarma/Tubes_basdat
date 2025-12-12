@@ -2,11 +2,11 @@
 require_once 'koneksi.php';
 
 // Cek login
-start_session();
-if (!is_logged_in()) {
-    header('Location: auth.php');
-    exit;
-}
+// start_session();
+// if (!is_logged_in()) {
+//     header('Location: auth.php');
+//     exit;
+// }
 
 $current_user = get_logged_in_user();
 $is_admin = ($current_user['role'] === 'AdminNotaris');

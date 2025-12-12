@@ -101,11 +101,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Check if already logged in
-start_session();
-if (is_logged_in()) {
-    header('Location: dashboard.php');
-    exit;
-}
+// start_session();
+// if (is_logged_in()) {
+//     header('Location: dashboard.php');
+//     exit;
+// }
 ?>
 <!DOCTYPE html>
 <html lang="id">
