@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <a class="nav-link" href="#" id="consultationBtnNav">Konsultasi</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link glass-btn" href="auth.html" id="loginBtnNav">
+                            <a class="nav-link glass-btn" href="auth.php" id="loginBtnNav">
                                 <i class="fas fa-sign-in-alt me-2"></i>Login
                             </a>
                         </li>

@@ -37,8 +37,8 @@
                             <a href="#services" class="btn btn-primary btn-lg px-4 py-2 rounded-pill me-3">
                                 <i class="fas fa-gavel me-2"></i>Layanan Kami
                             </a>
-                            <a href="#contact" class="btn btn-outline-primary btn-lg px-4 py-2 rounded-pill">
-                                <i class="fas fa-phone-alt me-2"></i>Hubungi Kami
+                            <a href="auth.php" class="btn btn-outline-primary btn-lg px-4 py-2 rounded-pill">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
                             </a>
                         </div>
                     </div>
