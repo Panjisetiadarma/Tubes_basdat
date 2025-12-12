@@ -1,14 +1,18 @@
-// js/dashboard-check.js
-document.addEventListener('DOMContentLoaded', function() {
+/**
+ * Dashboard Check - Verifikasi authentication sebelum load dashboard
+ */
+
+document.addEventListener('DOMContentLoaded', async function() {
     // Cek apakah user sudah login
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const isAuthenticated = await authManager.checkAuth();
     
-    if (!isLoggedIn && !window.location.href.includes('auth.html')) {
-        // Redirect ke halaman login jika belum login
+    if (!isAuthenticated) {
+        // Redirect ke halaman login
         window.location.href = 'auth.html?redirect=' + encodeURIComponent(window.location.href);
+        return;
     }
+    
+    // User sudah authenticated, lanjutkan load dashboard
+    console.log('User authenticated, loading dashboard...');
 });
 
-if (!localStorage.getItem("isLoggedIn")) {
-    window.location.href = "auth.html";
-}

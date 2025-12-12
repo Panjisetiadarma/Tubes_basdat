@@ -52,30 +52,32 @@ document.addEventListener('DOMContentLoaded', async function() {
     const activityList = document.querySelector('.activity-list');
 
     // Initialize
-    initDashboard();
-    updateUserInfo(user);
-    initCalendar();
-    initCharts();
-    loadRecentActivities();
-    loadRecentDocuments();
+    initDashboard().then(() => {
+        updateUserInfo(user);
+        initCalendar();
+        initCharts();
+        loadRecentActivities();
+        loadRecentDocuments();
+    });
 
     // Initialize dashboard
-    function initDashboard() {
+    async function initDashboard() {
         // Set current date
         const now = new Date();
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('currentDate').textContent = 
             now.toLocaleDateString('id-ID', options);
         
-        // Update stats with random data
-        updateStats();
+        // Update stats dengan data dari API
+        await updateStats();
     }
 
     // Update user information
     function updateUserInfo(user) {
         if (user) {
-            const fullName = `${user.firstName} ${user.lastName}`;
-            const firstName = user.firstName;
+            // User dari database memiliki nama_lengkap, bukan firstName/lastName
+            const fullName = user.nama_lengkap || user.username || 'User';
+            const firstName = fullName.split(' ')[0];
             
             userNameElements.forEach(element => {
                 if (element.id === 'welcomeUserName') {
@@ -87,23 +89,43 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Update email in sidebar
             const userEmail = document.querySelector('.user-profile p');
-            if (userEmail && user.email) {
-                userEmail.textContent = user.email;
+            if (userEmail && user.username) {
+                userEmail.textContent = user.username;
             }
             
             console.log('User info updated:', fullName);
         }
     }
 
-    // Update stats with random data
-    function updateStats() {
-        document.getElementById('docCount').textContent = Math.floor(Math.random() * 5) + 10;
-        document.getElementById('appointmentCount').textContent = Math.floor(Math.random() * 3) + 1;
-        document.getElementById('verifiedCount').textContent = Math.floor(Math.random() * 3) + 5;
-        document.getElementById('consultationCount').textContent = Math.floor(Math.random() * 3) + 3;
+    // Update stats dengan data dari API
+    async function updateStats() {
+        try {
+            const response = await fetch('api/dashboard_stats.php');
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                const stats = result.data;
+                
+                document.getElementById('docCount').textContent = stats.doc_count || 0;
+                document.getElementById('appointmentCount').textContent = stats.appointment_count || 0;
+                document.getElementById('verifiedCount').textContent = stats.verified_count || 0;
+                document.getElementById('consultationCount').textContent = stats.consultation_count || 0;
+            } else {
+                // Fallback ke data random jika API gagal
+                document.getElementById('docCount').textContent = Math.floor(Math.random() * 5) + 10;
+                document.getElementById('appointmentCount').textContent = Math.floor(Math.random() * 3) + 1;
+                document.getElementById('verifiedCount').textContent = Math.floor(Math.random() * 3) + 5;
+                document.getElementById('consultationCount').textContent = Math.floor(Math.random() * 3) + 3;
+            }
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            // Fallback ke data random
+            document.getElementById('docCount').textContent = Math.floor(Math.random() * 5) + 10;
+            document.getElementById('appointmentCount').textContent = Math.floor(Math.random() * 3) + 1;
+            document.getElementById('verifiedCount').textContent = Math.floor(Math.random() * 3) + 5;
+            document.getElementById('consultationCount').textContent = Math.floor(Math.random() * 3) + 3;
+        }
     }
-
-    // ... (sisanya sama seperti sebelumnya, pastikan logoutBtn event handler ada)
 
     // Logout handler
     logoutBtn.addEventListener('click', async function(e) {
@@ -349,8 +371,57 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(ctx, config);
     }
 
-    // Load recent activities
-    function loadRecentActivities() {
+    // Load recent activities dari API
+    async function loadRecentActivities() {
+        try {
+            const response = await fetch('api/dashboard_stats.php');
+            const result = await response.json();
+            
+            if (result.success && result.data && result.data.recent_activities) {
+                const activities = result.data.recent_activities;
+                
+                activityList.innerHTML = '';
+                
+                activities.forEach(activity => {
+                    const activityItem = document.createElement('div');
+                    activityItem.className = 'activity-item';
+                    
+                    // Format waktu
+                    const date = new Date(activity.created_at);
+                    const timeAgo = getTimeAgo(date);
+                    
+                    // Tentukan icon berdasarkan jenis pengajuan
+                    let icon = 'fa-file-contract';
+                    if (activity.jenis_pengajuan.toLowerCase().includes('konsultasi')) {
+                        icon = 'fa-comments';
+                    } else if (activity.jenis_pengajuan.toLowerCase().includes('legalisasi')) {
+                        icon = 'fa-stamp';
+                    } else if (activity.jenis_pengajuan.toLowerCase().includes('akta')) {
+                        icon = 'fa-file-contract';
+                    }
+                    
+                    activityItem.innerHTML = `
+                        <div class="activity-icon">
+                            <i class="fas ${icon}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">${activity.jenis_pengajuan}</div>
+                            <div class="activity-time">${timeAgo}</div>
+                        </div>
+                    `;
+                    activityList.appendChild(activityItem);
+                });
+            } else {
+                // Fallback ke data statis
+                loadDefaultActivities();
+            }
+        } catch (error) {
+            console.error('Error loading activities:', error);
+            loadDefaultActivities();
+        }
+    }
+    
+    function loadDefaultActivities() {
         const activities = [
             {
                 icon: 'fa-file-contract',
@@ -363,29 +434,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'Janji dengan Notaris Dijadwalkan',
                 time: 'Kemarin, 14:30',
                 color: 'success'
-            },
-            {
-                icon: 'fa-upload',
-                title: 'Dokumen KTP Diunggah',
-                time: '2 hari yang lalu',
-                color: 'info'
-            },
-            {
-                icon: 'fa-comments',
-                title: 'Konsultasi Hukum Warisan',
-                time: '3 hari yang lalu',
-                color: 'warning'
-            },
-            {
-                icon: 'fa-check-circle',
-                title: 'Legalisasi Sertifikat Selesai',
-                time: '5 hari yang lalu',
-                color: 'success'
             }
         ];
         
         activityList.innerHTML = '';
-        
         activities.forEach(activity => {
             const activityItem = document.createElement('div');
             activityItem.className = 'activity-item';
@@ -401,9 +453,83 @@ document.addEventListener('DOMContentLoaded', function() {
             activityList.appendChild(activityItem);
         });
     }
+    
+    function getTimeAgo(date) {
+        const now = new Date();
+        const diff = now - date;
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        
+        if (days > 0) return `${days} hari yang lalu`;
+        if (hours > 0) return `${hours} jam yang lalu`;
+        if (minutes > 0) return `${minutes} menit yang lalu`;
+        return 'Baru saja';
+    }
 
-    // Load recent documents
-    function loadRecentDocuments() {
+    // Load recent documents dari API
+    async function loadRecentDocuments() {
+        try {
+            const response = await fetch('api/dashboard_stats.php');
+            const result = await response.json();
+            
+            if (result.success && result.data && result.data.recent_documents) {
+                const documents = result.data.recent_documents;
+                
+                documentsTable.innerHTML = '';
+                
+                documents.forEach(doc => {
+                    const row = document.createElement('tr');
+                    
+                    // Format tanggal
+                    const date = new Date(doc.tanggal_pengajuan);
+                    const formattedDate = date.toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    });
+                    
+                    // Tentukan status badge class
+                    let statusClass = 'pending';
+                    if (doc.status.toLowerCase().includes('selesai') || doc.status.toLowerCase().includes('lunas')) {
+                        statusClass = 'completed';
+                    } else if (doc.status.toLowerCase().includes('proses')) {
+                        statusClass = 'processing';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>
+                            <i class="fas fa-file-alt me-2"></i>
+                            ${doc.jenis_pengajuan}
+                        </td>
+                        <td>${doc.jenis_pengajuan}</td>
+                        <td>${formattedDate}</td>
+                        <td>
+                            <span class="status-badge ${statusClass}">${doc.status}</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary ms-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    `;
+                    documentsTable.appendChild(row);
+                });
+            } else {
+                // Fallback ke data statis
+                loadDefaultDocuments();
+            }
+        } catch (error) {
+            console.error('Error loading documents:', error);
+            loadDefaultDocuments();
+        }
+    }
+    
+    function loadDefaultDocuments() {
         const documents = [
             {
                 name: 'Akta Jual Beli Tanah',
@@ -411,39 +537,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 date: '15 Mei 2023',
                 status: 'completed',
                 statusText: 'Selesai'
-            },
-            {
-                name: 'Surat Kuasa Khusus',
-                type: 'Surat Kuasa',
-                date: '14 Mei 2023',
-                status: 'processing',
-                statusText: 'Diproses'
-            },
-            {
-                name: 'Legalisasi Ijazah',
-                type: 'Legalisasi',
-                date: '12 Mei 2023',
-                status: 'completed',
-                statusText: 'Selesai'
-            },
-            {
-                name: 'Perjanjian Sewa Menyewa',
-                type: 'Perjanjian',
-                date: '10 Mei 2023',
-                status: 'pending',
-                statusText: 'Menunggu'
-            },
-            {
-                name: 'Surat Wasiat',
-                type: 'Testamen',
-                date: '8 Mei 2023',
-                status: 'processing',
-                statusText: 'Diproses'
             }
         ];
         
         documentsTable.innerHTML = '';
-        
         documents.forEach(doc => {
             const row = document.createElement('tr');
             row.innerHTML = `

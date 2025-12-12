@@ -1,109 +1,188 @@
-// js/auth.js
+/**
+ * Authentication Manager
+ * Mengelola autentikasi user dengan backend PHP
+ */
+
 const authManager = {
-    // Simulasi data pengguna untuk testing
-    users: [
-        { email: 'demo@notaris.com', password: 'demo123', name: 'Demo User' }
-    ],
+    API_BASE_URL: 'api/',
     
-    // Fungsi login
+    /**
+     * Login user
+     */
     async login(email, password) {
-        return new Promise((resolve, reject) => {
-            console.log('Attempting login with:', email);
+        try {
+            const response = await fetch(this.API_BASE_URL + 'login.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            });
             
-            // Simulasi delay server
-            setTimeout(() => {
-                // Cari user berdasarkan email
-                const user = this.users.find(u => u.email === email);
-                
-                if (!user) {
-                    reject('Email tidak ditemukan');
-                    return;
-                }
-                
-                if (user.password !== password) {
-                    reject('Password salah');
-                    return;
-                }
-                
-                // Simpan session (simplified)
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('userEmail', email);
-                localStorage.setItem('userName', user.name);
-                
-                resolve({
+            const data = await response.json();
+            
+            if (data.success) {
+                // Simpan user info ke localStorage untuk akses cepat
+                localStorage.setItem('current_user', JSON.stringify(data.user));
+                return {
                     success: true,
-                    message: 'Login berhasil',
-                    user: user
-                });
-            }, 1000);
-        });
+                    user: data.user,
+                    message: data.message
+                };
+            } else {
+                return {
+                    success: false,
+                    message: data.message
+                };
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            return {
+                success: false,
+                message: 'Terjadi kesalahan. Silakan coba lagi.'
+            };
+        }
     },
     
-    // Fungsi register
+    /**
+     * Register user baru
+     */
     async register(userData) {
-        return new Promise((resolve, reject) => {
-            console.log('Registering user:', userData);
-            
-            setTimeout(() => {
-                // Cek apakah email sudah terdaftar
-                const existingUser = this.users.find(u => u.email === userData.email);
-                
-                if (existingUser) {
-                    reject('Email sudah terdaftar');
-                    return;
-                }
-                
-                // Tambahkan user baru
-                const newUser = {
+        try {
+            const response = await fetch(this.API_BASE_URL + 'register.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nama_lengkap: userData.nama_lengkap,
+                    username: userData.username || userData.email.split('@')[0],
                     email: userData.email,
                     password: userData.password,
-                    name: `${userData.firstName} ${userData.lastName}`,
+                    confirm_password: userData.confirm_password,
                     phone: userData.phone
-                };
-                
-                this.users.push(newUser);
-                
-                // Simpan session
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('userEmail', userData.email);
-                localStorage.setItem('userName', `${userData.firstName} ${userData.lastName}`);
-                
-                resolve({
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Simpan user info ke localStorage
+                localStorage.setItem('current_user', JSON.stringify(data.user));
+                return {
                     success: true,
-                    message: 'Pendaftaran berhasil',
-                    user: newUser
-                });
-            }, 1500);
-        });
+                    user: data.user,
+                    message: data.message
+                };
+            } else {
+                return {
+                    success: false,
+                    message: data.message
+                };
+            }
+        } catch (error) {
+            console.error('Register error:', error);
+            return {
+                success: false,
+                message: 'Terjadi kesalahan. Silakan coba lagi.'
+            };
+        }
     },
     
-    // Fungsi reset password
-    async requestPasswordReset(email) {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const user = this.users.find(u => u.email === email);
-                
-                if (!user) {
-                    reject('Email tidak ditemukan');
-                    return;
+    /**
+     * Logout user
+     */
+    async logout() {
+        try {
+            const response = await fetch(this.API_BASE_URL + 'logout.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
                 }
-                
-                // Simulasi: link reset dikirim
-                resolve(`Link reset password telah dikirim ke ${email}. Silakan cek email Anda.`);
-            }, 1000);
-        });
+            });
+            
+            // Hapus dari localStorage
+            localStorage.removeItem('current_user');
+            
+            return {
+                success: true,
+                message: 'Logout berhasil'
+            };
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Tetap hapus dari localStorage meskipun error
+            localStorage.removeItem('current_user');
+            return {
+                success: true,
+                message: 'Logout berhasil'
+            };
+        }
     },
     
-    // Cek apakah user sudah login
-    checkLoginStatus() {
-        return localStorage.getItem('isLoggedIn') === 'true';
+    /**
+     * Cek apakah user sudah login
+     */
+    async checkAuth() {
+        try {
+            const response = await fetch(this.API_BASE_URL + 'check_auth.php', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.authenticated) {
+                // Update localStorage dengan data terbaru
+                if (data.user) {
+                    localStorage.setItem('current_user', JSON.stringify(data.user));
+                }
+                return true;
+            } else {
+                localStorage.removeItem('current_user');
+                return false;
+            }
+        } catch (error) {
+            console.error('Check auth error:', error);
+            // Fallback ke localStorage
+            return this.getCurrentUser() !== null;
+        }
     },
     
-    // Logout
-    logout() {
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userName');
-        window.location.href = 'auth.html?logout=true';
+    /**
+     * Verify token (alias untuk checkAuth)
+     */
+    async verifyToken() {
+        return await this.checkAuth();
+    },
+    
+    /**
+     * Get current user dari localStorage
+     */
+    getCurrentUser() {
+        const userStr = localStorage.getItem('current_user');
+        if (userStr) {
+            try {
+                return JSON.parse(userStr);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    },
+    
+    /**
+     * Check if user is authenticated (synchronous, dari localStorage)
+     */
+    isAuthenticated() {
+        return this.getCurrentUser() !== null;
     }
 };
+
+// Export untuk digunakan di file lain
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = authManager;
+}
+
