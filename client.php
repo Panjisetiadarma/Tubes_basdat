@@ -1,24 +1,24 @@
 <?php
-require_once 'koneksi.php';
+require_once 'common_crud.php'; // ini otomatis memanggil koneksi juga
+
 $current_user = get_logged_in_user();
 $is_admin = ($current_user['role'] === 'AdminNotaris');
 
 $page_title = 'Data Client';
 
 // Ambil data client
-$query = "SELECT Client.id_client, Pribadi.nama_lengkap,
-          Client.nomor_telepon, Client.alamat, Client.jenis_client
-          FROM Client
-          LEFT JOIN Pribadi ON Client.id_client = Pribadi.id_client";
-$result = query($query);
+$clients = getData(
+    'Client c 
+     LEFT JOIN Pribadi p ON c.id_client=p.id_client
+     LEFT JOIN Perusahaan pr ON c.id_client=pr.id_client',
+    'c.id_client, COALESCE(p.nama_lengkap, pr.nama_perusahaan) AS nama, c.nomor_telepon, c.alamat, c.jenis_client',
+    '1=1',
+    'c.id_client ASC'
+);
 
-$clients = [];
-while ($row = fetch_array($result)) {
-    $clients[] = $row;
-}
 
-$current_page = basename($_SERVER['PHP_SELF']);
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -36,6 +36,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/navbar.css">
     <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/client.css">
 
     <!-- Bootstrap Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -43,133 +44,50 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <body class="dashboard-body">
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg dashboard-navbar">
-        <div class="container-fluid">
-            <div class="d-flex align-items-center">
-                <button class="btn sidebar-toggle me-3" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a class="navbar-brand" href="dashboard.php">Notaris<span style="color: #6A85FF;">Pro</span></a>
-            </div>
-
-            <!-- User Menu -->
-            <div class="dropdown">
-                <button class="btn user-menu dropdown-toggle d-flex align-items-center" 
-                        type="button" id="userDropdown" data-bs-toggle="dropdown">
-                    <div class="user-avatar me-2">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-info d-none d-md-block">
-                        <span id="userName"><?php echo htmlspecialchars($current_user['nama_lengkap']); ?></span>
-                        <small class="text-muted d-block"><?php echo $is_admin ? 'Admin Notaris' : 'User'; ?></small>
-                    </div>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profil</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Pengaturan</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="dashboard.php?logout=1"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include 'components/navbar.php'; ?>
 
     <!-- Dashboard Container -->
     <div class="dashboard-container d-flex">
 
         <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="user-profile">
-                    <div class="avatar-lg">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <h5 id="sidebarUserName"><?php echo htmlspecialchars($current_user['nama_lengkap']); ?></h5>
-                    <p class="text-muted"><?php echo htmlspecialchars($current_user['username']); ?></p>
-                </div>
-            </div>
-            
-            <?php
-            $current_page = basename($_SERVER['PHP_SELF']);
-            ?>
-           <nav class="sidebar-nav">
-            <ul class="nav flex-column">
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'dashboard.php') ? 'active' : '' ?>" href="dashboard.php">
-                        <i class="fas fa-chart-line me-2"></i>Dashboard
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'client.php') ? 'active' : '' ?>" href="client.php">
-                        <i class="fas fa-user-tie me-2"></i>Client
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'pengajuan.php') ? 'active' : '' ?>" href="pengajuan.php">
-                        <i class="fas fa-file-upload me-2"></i>Pengajuan
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'transaksi.php') ? 'active' : '' ?>" href="transaksi.php">
-                        <i class="fas fa-money-check-alt me-2"></i>Transaksi
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'jadwal.php') ? 'active' : '' ?>" href="jadwal.php">
-                        <i class="fas fa-calendar-alt me-2"></i>Jadwal
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'arsip.php') ? 'active' : '' ?>" href="arsip.php">
-                        <i class="fas fa-folder-open me-2"></i>Arsip File
-                    </a>
-                </li>
-
-                <?php if ($is_admin): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="fas fa-users-cog me-2"></i>Manage Client
-                    </a>
-                </li>
-                <?php endif; ?>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'riwayat.php') ? 'active' : '' ?>" href="riwayat.php">
-                        <i class="fas fa-history me-2"></i>Riwayat Transaksi
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'konsultasi.php') ? 'active' : '' ?>" href="konsultasi.php">
-                        <i class="fas fa-comments me-2"></i>Konsultasi Online
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'profil.php') ? 'active' : '' ?>" href="profil.php">
-                        <i class="fas fa-user-circle me-2"></i>Profil Akun
-                    </a>
-                </li>
-            </ul>
-        </nav>  
-                <div class="sidebar-footer">
-                    <a href="index.php" class="btn btn-outline-primary w-100">
-                        <i class="fas fa-globe me-2"></i>Home
-                    </a>
-                </div>
-            </nav>
-        </aside>
-
+        <?php include 'components/sidebar.php'; ?>
+        
         <!-- Main Content -->
         <main class="main-content p-4" id="mainContent">
-            <h2 class="mb-4">Data Client</h2>
+            <h2 id="clientTitle" class="mb-4">Data Client</h2>
+        <!-- Alerts -->
+        <?php if(isset($_GET['added'])): ?>
+            <div class="alert alert-success">Client berhasil ditambahkan!</div>
+        <?php endif; ?>
+        <?php if(isset($_GET['deleted'])): ?>
+            <div class="alert alert-success">Client berhasil dihapus!</div>
+        <?php endif; ?>
 
+        <!-- form tambah -->
+        <?php if($is_admin): ?>
+        <form method="POST" class="mb-3 row g-2 align-items-end">
+            <input type="hidden" name="add_client" value="1">
+            <div class="col-md-2">
+                <input type="text" name="nama_lengkap" class="form-control" placeholder="Nama Lengkap" required>
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="nomor_telepon" class="form-control" placeholder="Nomor Telepon" required>
+            </div>
+            <div class="col-md-3">
+                <input type="text" name="alamat" class="form-control" placeholder="Alamat" required>
+            </div>
+            <div class="col-md-2">
+                <select name="jenis_client" class="form-control" required>
+                    <option value="">Pilih Jenis Client</option>
+                    <option value="Pribadi">Pribadi</option>
+                    <option value="Perusahaan">Perusahaan</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-primary w-100">Tambah</button>
+            </div>
+        </form>
+        <?php endif; ?>
             <table class="table table-bordered table-striped">
                 <thead class="table-light">
                     <tr>
@@ -178,6 +96,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <th>No Telp</th>
                         <th>Alamat</th>
                         <th>Jenis</th>
+                        <?php if($is_admin) echo "<th>Delete</th>"; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -187,10 +106,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     <?php foreach ($clients as $c): ?>
                     <tr>
                         <td><?= htmlspecialchars($c['id_client']) ?></td>
-                        <td><?= htmlspecialchars($c['nama_lengkap']) ?></td>
+                        <td><?= htmlspecialchars($c['nama']) ?></td>
                         <td><?= htmlspecialchars($c['nomor_telepon']) ?></td>
                         <td><?= htmlspecialchars($c['alamat']) ?></td>
                         <td><?= htmlspecialchars($c['jenis_client']) ?></td>
+                        <?php if($is_admin): ?>
+                        <td>
+                            <a href="client.php?delete=<?= $c['id_client'] ?>" 
+                               class="btn btn-sm btn-danger" 
+                               onclick="return confirm('Yakin hapus?')">Hapus</a>
+                        </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
