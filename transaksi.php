@@ -48,8 +48,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="styles/main.css" rel="stylesheet">
 <link href="styles/navbar.css" rel="stylesheet">
-<link href="styles/dashboard.css" rel="stylesheet">
+<link href="styles/sidebar.css" rel="stylesheet">
 <link href="styles/transaksi.css" rel="stylesheet">
+<link href="styles/dashboard.css" rel="stylesheet">s
 </head>
 <body class="dashboard-body">
 
@@ -63,7 +64,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     <!-- Main Content -->
     <main class="main-content p-4" id="mainContent">
-        <h2 class="mb-4"><?= htmlspecialchars($page_title) ?></h2>
+        <h2 id="tTitle" class="mb-4"><?= htmlspecialchars($page_title) ?></h2>
 
         <!-- Alerts -->
         <?php if(isset($_GET['added'])): ?>
@@ -118,7 +119,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <th>Tanggal</th>
                         <th>Status</th>
                         <th>Keterangan</th>
-                        <?php if($is_admin) echo "<th>Aksi</th>"; ?>
+                        <?php if($is_admin) echo "<th>Delete</th>"; ?>
                     </tr>
                 </thead>
                 <tbody>

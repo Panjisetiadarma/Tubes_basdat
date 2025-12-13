@@ -225,6 +225,7 @@ function getClientName($pengajuan) {
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/navbar.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
     <link rel="stylesheet" href="styles/dashboard.css">
 
     <!-- Bootstrap Bundle -->

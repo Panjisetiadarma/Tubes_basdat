@@ -13,10 +13,11 @@ if (isset($_GET['delete']) && $is_admin) {
 }
 
 // Insert pengajuan
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_pengajuan']) && $is_admin) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_pengajuan' && $is_admin) {
     insertData('Pengajuan', [
         'id_client' => $_POST['id_client'],
         'jenis_pengajuan' => $_POST['jenis_pengajuan'],
+        'id_notaris' => $_POST['id_notaris'] ?: null,
         'id_status' => $_POST['id_status'],
         'deskripsi' => $_POST['deskripsi'],
         'tanggal_pengajuan' => $_POST['tanggal_pengajuan']
@@ -25,8 +26,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_pengajuan']) && $
     exit;
 }
 
-// Ambil data pengajuan
-$pengajuan_list = getData('Pengajuan', '*', '1=1', 'created_at DESC');
+$pengajuan_list = getData(
+    'Pengajuan pj
+     LEFT JOIN Client c ON pj.id_client = c.id_client
+     LEFT JOIN Pribadi p ON c.id_client = p.id_client
+     LEFT JOIN Perusahaan pr ON c.id_client = pr.id_client
+     LEFT JOIN Notaris n ON pj.id_notaris = n.id_notaris
+     LEFT JOIN Status_Pengajuan sp ON pj.id_status = sp.id_status',
+     
+    'pj.id_pengajuan,
+     CASE
+        WHEN c.jenis_client = "pribadi" THEN p.nama_lengkap
+        WHEN c.jenis_client = "perusahaan" THEN pr.nama_perusahaan
+     END AS nama_client,
+     pj.jenis_pengajuan,
+     n.nama_notaris,
+     sp.nama_status,
+     pj.deskripsi,
+     pj.tanggal_pengajuan',
+     
+    '1=1',
+    'pj.created_at DESC'
+);
+
+
 
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
@@ -42,8 +65,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="styles/main.css" rel="stylesheet">
 <link href="styles/navbar.css" rel="stylesheet">
-<link href="styles/dashboard.css" rel="stylesheet">
+<link href="styles/sidebar.css" rel="stylesheet">
 <link href="styles/pengajuan.css" rel="stylesheet">
+<link href="styles/dashboard.css" rel="stylesheet">
 </head>
 <body class="dashboard-body">
 
@@ -51,13 +75,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <?php include 'components/navbar.php'; ?>
 
 <div class="dashboard-container d-flex">
-
     <!-- Sidebar -->
     <?php include 'components/sidebar.php'; ?>
 
     <!-- Main Content -->
     <main class="main-content p-4" id="mainContent">
-        <h2 id="pageTitle" class="mb-4"><?= htmlspecialchars($page_title) ?></h2>
+        <h2 id="pTitle" class="mb-4"><?= htmlspecialchars($page_title) ?></h2>
 
         <!-- Alerts -->
         <?php if(isset($_GET['added'])): ?>
@@ -67,29 +90,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <div class="alert alert-success">Pengajuan berhasil dihapus!</div>
         <?php endif; ?>
 
-        <!-- Form Tambah Pengajuan -->
+        <!-- Tombol Tambah Pengajuan (Admin Only) -->
         <?php if($is_admin): ?>
-        <form method="POST" class="mb-3 row g-2 align-items-end">
-            <input type="hidden" name="add_pengajuan" value="1">
-            <div class="col-md-2">
-                <input type="text" name="jenis_pengajuan" class="form-control" placeholder="Jenis Pengajuan" required>
-            </div>
-            <div class="col-md-2">
-                <input type="text" name="id_client" class="form-control" placeholder="ID Client" required>
-            </div>
-            <div class="col-md-2">
-                <input type="text" name="id_status" class="form-control" placeholder="ID Status">
-            </div>
-            <div class="col-md-3">
-                <input type="text" name="deskripsi" class="form-control" placeholder="Deskripsi">
-            </div>
-            <div class="col-md-2">
-                <input type="date" name="tanggal_pengajuan" class="form-control" required>
-            </div>
-            <div class="col-md-1">
-                <button class="btn btn-primary w-100">Tambah</button>
-            </div>
-        </form>
+            <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addPengajuanModal">
+                Tambah Pengajuan
+            </button>
         <?php endif; ?>
 
         <!-- Table Pengajuan -->
@@ -98,8 +103,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <thead class="table-light">
                     <tr>
                         <th>ID</th>
-                        <th>ID Client</th>
+                        <th>Nama Client</th>
                         <th>Jenis</th>
+                        <th>Notaris</th>
                         <th>Status</th>
                         <th>Deskripsi</th>
                         <th>Tanggal</th>
@@ -108,14 +114,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </thead>
                 <tbody>
                 <?php if(empty($pengajuan_list)): ?>
-                    <tr><td colspan="<?= $is_admin ? 7 : 6 ?>" class="text-center">Tidak ada data</td></tr>
+                    <tr><td colspan="<?= $is_admin ? 8 : 7 ?>" class="text-center">Tidak ada data</td></tr>
                 <?php else: ?>
                     <?php foreach($pengajuan_list as $p): ?>
                     <tr>
                         <td><?= htmlspecialchars($p['id_pengajuan']) ?></td>
-                        <td><?= htmlspecialchars($p['id_client']) ?></td>
+                        <td><?= htmlspecialchars($p['nama_client']) ?></td>
                         <td><?= htmlspecialchars($p['jenis_pengajuan']) ?></td>
-                        <td><?= htmlspecialchars($p['id_status']) ?></td>
+                        <td><?= htmlspecialchars($p['nama_notaris']) ?></td>
+                        <td><?= htmlspecialchars($p['nama_status']) ?></td>
                         <td><?= htmlspecialchars($p['deskripsi']) ?></td>
                         <td><?= htmlspecialchars($p['tanggal_pengajuan']) ?></td>
                         <?php if($is_admin): ?>
@@ -134,6 +141,75 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </main>
 
 </div>
+
+<!-- Modal Add Pengajuan (Admin Only) -->
+<?php if ($is_admin): ?>
+<div class="modal fade" id="addPengajuanModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tambah Pengajuan Baru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="pengajuan.php">
+                <input type="hidden" name="action" value="add_pengajuan">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Client</label>
+                        <select name="id_client" class="form-select" required>
+                            <option value="">Pilih Client</option>
+                            <?php foreach ($client_list as $client): ?>
+                                <option value="<?= $client['id_client']; ?>">
+                                    <?= htmlspecialchars($client['nama_lengkap'] ?: $client['nama_perusahaan']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Jenis Pengajuan</label>
+                        <input type="text" name="jenis_pengajuan" class="form-control" required 
+                               placeholder="Contoh: Akta Jual Beli, Legalisasi, dll">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notaris</label>
+                        <select name="id_notaris" class="form-select">
+                            <option value="">Pilih Notaris (Opsional)</option>
+                            <?php foreach ($notaris_list as $notaris): ?>
+                                <option value="<?= $notaris['id_notaris']; ?>">
+                                    <?= htmlspecialchars($notaris['nama_notaris']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="id_status" class="form-select" required>
+                            <?php foreach ($status_list as $status): ?>
+                                <option value="<?= $status['id_status']; ?>">
+                                    <?= htmlspecialchars($status['nama_status']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="deskripsi" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tanggal Pengajuan</label>
+                        <input type="date" name="tanggal_pengajuan" class="form-control" 
+                               value="<?= date('Y-m-d'); ?>" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
