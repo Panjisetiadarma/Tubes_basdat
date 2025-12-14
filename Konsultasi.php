@@ -127,6 +127,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Filter konsultasi berdasarkan role
+// Admin lihat semua, User hanya lihat konsultasi mereka
+$where_konsultasi = "1=1";
+if (!$is_admin) {
+    $where_konsultasi = "k.id_user = " . (int)$current_user['id_user'];
+}
+
 // Ambil daftar konsultasi
 if ($action === 'list') {
     $query = "
@@ -143,6 +150,7 @@ if ($action === 'list') {
         LEFT JOIN Notaris n ON k.id_notaris = n.id_notaris
         LEFT JOIN Ppat pp ON k.id_ppat = pp.id_ppat
         LEFT JOIN User u ON k.id_user = u.id_user
+        WHERE $where_konsultasi
         ORDER BY k.created_at DESC
     ";
     
@@ -653,4 +661,3 @@ if (chatContainer) {
 </script>
 </body>
 </html>
-

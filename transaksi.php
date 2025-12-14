@@ -27,10 +27,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_transaksi']) && $
 }
 
 // Ambil data transaksi (JOIN dengan pengajuan untuk info pengajuan)
+// Admin lihat semua, User hanya lihat transaksi dari pengajuan mereka
+$where_transaksi = "1=1";
+if (!$is_admin) {
+    $where_transaksi = "p.id_user = " . (int)$current_user['id_user'];
+}
+
 $transaksi_list = getData(
     'Transaksi t LEFT JOIN Pengajuan p ON t.id_pengajuan = p.id_pengajuan',
-    't.*, p.jenis_pengajuan, p.id_client',
-    '1=1',
+    't.*, p.jenis_pengajuan, p.id_client, p.id_user',
+    $where_transaksi,
     't.created_at DESC'
 );
 

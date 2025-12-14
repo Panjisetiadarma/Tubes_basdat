@@ -14,42 +14,82 @@ if (isset($_GET['delete']) && $is_admin) {
 
 // Insert pengajuan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_pengajuan' && $is_admin) {
-    insertData('Pengajuan', [
+    $data_pengajuan = [
         'id_client' => $_POST['id_client'],
         'jenis_pengajuan' => $_POST['jenis_pengajuan'],
-        'id_notaris' => $_POST['id_notaris'] ?: null,
         'id_status' => $_POST['id_status'],
-        'deskripsi' => $_POST['deskripsi'],
-        'tanggal_pengajuan' => $_POST['tanggal_pengajuan']
-    ]);
+        'tanggal_pengajuan' => $_POST['tanggal_pengajuan'],
+        'id_user' => $current_user['id_user'] // Track user yang membuat pengajuan
+    ];
+    
+    if (isset($_POST['id_notaris']) && !empty($_POST['id_notaris'])) {
+        $data_pengajuan['id_notaris'] = $_POST['id_notaris'];
+    }
+    if (isset($_POST['deskripsi']) && !empty($_POST['deskripsi'])) {
+        $data_pengajuan['deskripsi'] = $_POST['deskripsi'];
+    }
+    
+    insertData('Pengajuan', $data_pengajuan);
     header("Location: pengajuan.php?added=1");
     exit;
 }
 
-$pengajuan_list = getData(
-    'Pengajuan pj
-     LEFT JOIN Client c ON pj.id_client = c.id_client
-     LEFT JOIN Pribadi p ON c.id_client = p.id_client
-     LEFT JOIN Perusahaan pr ON c.id_client = pr.id_client
-     LEFT JOIN Notaris n ON pj.id_notaris = n.id_notaris
-     LEFT JOIN Status_Pengajuan sp ON pj.id_status = sp.id_status',
-     
-    'pj.id_pengajuan,
-     CASE
-        WHEN c.jenis_client = "pribadi" THEN p.nama_lengkap
-        WHEN c.jenis_client = "perusahaan" THEN pr.nama_perusahaan
-     END AS nama_client,
-     pj.jenis_pengajuan,
-     n.nama_notaris,
-     sp.nama_status,
-     pj.deskripsi,
-     pj.tanggal_pengajuan',
-     
+// Filter pengajuan berdasarkan role
+// Admin lihat semua, User hanya lihat pengajuan mereka
+$where_pengajuan = "1=1";
+if (!$is_admin) {
+    // User hanya lihat pengajuan yang dibuat oleh mereka (jika ada id_user)
+    // Atau pengajuan yang terkait dengan client mereka
+    $where_pengajuan = "(pj.id_user = " . (int)$current_user['id_user'] . " OR pj.id_user IS NULL)";
+}
+
+$query_pengajuan = "
+    SELECT 
+        pj.id_pengajuan,
+        CASE
+            WHEN c.jenis_client = 'pribadi' THEN p.nama_lengkap
+            WHEN c.jenis_client = 'perusahaan' THEN pr.nama_perusahaan
+            ELSE 'N/A'
+        END AS nama_client,
+        pj.jenis_pengajuan,
+        n.nama_notaris,
+        sp.nama_status,
+        pj.deskripsi,
+        pj.tanggal_pengajuan,
+        pj.created_at,
+        pj.id_user
+    FROM Pengajuan pj
+    LEFT JOIN Client c ON pj.id_client = c.id_client
+    LEFT JOIN Pribadi p ON c.id_client = p.id_client AND c.jenis_client = 'pribadi'
+    LEFT JOIN Perusahaan pr ON c.id_client = pr.id_client AND c.jenis_client = 'perusahaan'
+    LEFT JOIN Notaris n ON pj.id_notaris = n.id_notaris
+    LEFT JOIN Status_Pengajuan sp ON pj.id_status = sp.id_status
+    WHERE $where_pengajuan
+    ORDER BY pj.created_at DESC
+";
+
+$result_pengajuan = query($query_pengajuan);
+$pengajuan_list = [];
+if ($result_pengajuan) {
+    while ($row = fetch_array($result_pengajuan)) {
+        $pengajuan_list[] = $row;
+    }
+}
+
+
+
+// Ambil list untuk dropdown modal
+$client_list = getData(
+    'Client c 
+     LEFT JOIN Pribadi p ON c.id_client=p.id_client
+     LEFT JOIN Perusahaan pr ON c.id_client=pr.id_client',
+    'c.id_client, COALESCE(p.nama_lengkap, pr.nama_perusahaan) AS nama',
     '1=1',
-    'pj.created_at DESC'
+    'c.id_client ASC'
 );
 
-
+$notaris_list = getData('Notaris', '*', '1=1', 'nama_notaris ASC');
+$status_list = getData('Status_Pengajuan', '*', '1=1', 'id_status ASC');
 
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>

@@ -1,5 +1,6 @@
 <?php
 require_once 'koneksi.php';
+require_once 'common_crud.php';
 
 // Cek login
 // start_session();
@@ -34,15 +35,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $id_notaris = isset($_POST['id_notaris']) && !empty($_POST['id_notaris']) ? (int)$_POST['id_notaris'] : null;
     $id_status = (int)$_POST['id_status'];
     $jenis_pengajuan = escape($_POST['jenis_pengajuan']);
-    $deskripsi = escape($_POST['deskripsi']);
+    $deskripsi = isset($_POST['deskripsi']) && !empty($_POST['deskripsi']) ? escape($_POST['deskripsi']) : null;
     $tanggal_pengajuan = escape($_POST['tanggal_pengajuan']);
     
-    $id_notaris_sql = $id_notaris ? $id_notaris : 'NULL';
+    $data_pengajuan = [
+        'id_client' => $id_client,
+        'id_status' => $id_status,
+        'jenis_pengajuan' => $jenis_pengajuan,
+        'tanggal_pengajuan' => $tanggal_pengajuan,
+        'id_user' => $current_user['id_user']
+    ];
     
-    $insert_query = "INSERT INTO Pengajuan (id_client, id_notaris, id_status, jenis_pengajuan, deskripsi, tanggal_pengajuan) 
-                     VALUES ($id_client, $id_notaris_sql, $id_status, '$jenis_pengajuan', '$deskripsi', '$tanggal_pengajuan')";
+    if ($id_notaris !== null) $data_pengajuan['id_notaris'] = $id_notaris;
+    if ($deskripsi !== null) $data_pengajuan['deskripsi'] = $deskripsi;
     
-    if (query($insert_query)) {
+    if (insertData('Pengajuan', $data_pengajuan)) {
         header('Location: dashboard.php?added=1');
         exit;
     }
@@ -53,6 +60,12 @@ $search_term = isset($_GET['search']) ? sanitize($_GET['search']) : '';
 $pengajuan_list = [];
 
 // Query untuk mendapatkan pengajuan
+// Admin lihat semua, User hanya lihat pengajuan mereka
+$where_user = "";
+if (!$is_admin) {
+    $where_user = " AND (p.id_user = " . (int)$current_user['id_user'] . " OR p.id_user IS NULL)";
+}
+
 $where_clause = "";
 if (!empty($search_term)) {
     $search_escaped = escape($search_term);
@@ -85,7 +98,7 @@ $query = "
     LEFT JOIN Ppat pp ON p.id_ppat = pp.id_ppat
     LEFT JOIN Pribadi pr ON c.id_client = pr.id_client AND c.jenis_client = 'pribadi'
     LEFT JOIN Perusahaan pe ON c.id_client = pe.id_client AND c.jenis_client = 'perusahaan'
-    WHERE 1=1 $where_clause
+    WHERE 1=1 $where_user $where_clause
     ORDER BY p.created_at DESC
 ";
 
@@ -257,6 +270,27 @@ function getClientName($pengajuan) {
                         </div>
                     </div>
                 </div>
+                
+                <!-- Search Form -->
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <form method="GET" action="dashboard.php" class="d-flex gap-2">
+                            <div class="flex-grow-1">
+                                <input type="text" name="search" class="form-control" 
+                                       placeholder="Cari pengajuan, client, notaris, status..." 
+                                       value="<?= htmlspecialchars($search_term) ?>">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Cari
+                            </button>
+                            <?php if (!empty($search_term)): ?>
+                                <a href="dashboard.php" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i> Reset
+                                </a>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             <!-- Stats Cards -->
@@ -316,7 +350,7 @@ function getClientName($pengajuan) {
                             <h5 class="card-title">
                                 <i class="fas fa-history me-2"></i>Aktivitas Terbaru
                             </h5>
-                            <a href="#" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
+                            <a href="pengajuan.php" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
                         </div>
                         <div class="card-body">
                             <div class="activity-list">
@@ -354,22 +388,89 @@ function getClientName($pengajuan) {
                                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPengajuanModal">
                                         <i class="fas fa-plus me-2"></i>Tambah Pengajuan
                                     </button>
+                                    <a href="management_client.php" class="btn btn-outline-primary">
+                                        <i class="fas fa-users-cog me-2"></i>Management Client
+                                    </a>
                                 <?php endif; ?>
-                                <button class="btn btn-outline-primary">
+                                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadDokumenModal">
                                     <i class="fas fa-upload me-2"></i>Upload Dokumen
                                 </button>
-                                <button class="btn btn-outline-primary">
+                                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#buatJanjiModal">
                                     <i class="fas fa-calendar-plus me-2"></i>Buat Janji
                                 </button>
-                                <button class="btn btn-outline-primary">
+                                <a href="konsultasi.php?action=list" class="btn btn-outline-primary">
                                     <i class="fas fa-comment-dots me-2"></i>Konsultasi
-                                </button>
+                                </a>
+                                <a href="riwayat.php" class="btn btn-outline-secondary">
+                                    <i class="fas fa-history me-2"></i>Riwayat Transaksi
+                                </a>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Daftar Pengajuan -->
+            <?php if (!empty($pengajuan_list)): ?>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card glass-effect">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list me-2"></i>Daftar Pengajuan
+                                <?php if (!empty($search_term)): ?>
+                                    <small class="text-muted">- Hasil pencarian: "<?= htmlspecialchars($search_term) ?>"</small>
+                                <?php endif; ?>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Jenis Pengajuan</th>
+                                            <th>Client</th>
+                                            <th>Notaris</th>
+                                            <th>Status</th>
+                                            <th>Tanggal</th>
+                                            <?php if($is_admin): ?>
+                                                <th>Aksi</th>
+                                            <?php endif; ?>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach($pengajuan_list as $p): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($p['id_pengajuan']) ?></td>
+                                            <td><?= htmlspecialchars($p['jenis_pengajuan']) ?></td>
+                                            <td><?= htmlspecialchars(getClientName($p)) ?></td>
+                                            <td><?= htmlspecialchars($p['nama_notaris'] ?? '-') ?></td>
+                                            <td>
+                                                <span class="badge <?= getStatusClass($p['nama_status']) ?>">
+                                                    <?= htmlspecialchars($p['nama_status'] ?? '-') ?>
+                                                </span>
+                                            </td>
+                                            <td><?= formatDate($p['tanggal_pengajuan']) ?></td>
+                                            <?php if($is_admin): ?>
+                                                <td>
+                                                    <a href="dashboard.php?delete=<?= $p['id_pengajuan'] ?>" 
+                                                       class="btn btn-sm btn-danger"
+                                                       onclick="return confirm('Yakin hapus?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </td>
+                                            <?php endif; ?>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
 
     <!-- Modal Add Pengajuan (Admin Only) -->
     <?php if ($is_admin): ?>
@@ -440,6 +541,102 @@ function getClientName($pengajuan) {
     </div>
     <?php endif; ?>
 
+    <!-- Modal Upload Dokumen -->
+    <div class="modal fade" id="uploadDokumenModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Dokumen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="arsip.php" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Pilih Pengajuan</label>
+                            <select name="id_pengajuan" class="form-select" required>
+                                <option value="">Pilih Pengajuan</option>
+                                <?php 
+                                $pengajuan_for_upload = getData('Pengajuan', '*', '1=1', 'id_pengajuan DESC');
+                                foreach ($pengajuan_for_upload as $p): 
+                                ?>
+                                    <option value="<?= $p['id_pengajuan'] ?>">
+                                        #<?= $p['id_pengajuan'] ?> - <?= htmlspecialchars($p['jenis_pengajuan']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Pilih File</label>
+                            <input type="file" name="file_dokumen" class="form-control" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <small class="text-muted">Format: PDF, DOC, DOCX, JPG, PNG. Maksimal 10MB</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nama File</label>
+                            <input type="text" name="nama_file" class="form-control" placeholder="Nama file (opsional)">
+                            <small class="text-muted">Jika kosong, akan menggunakan nama file asli</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <a href="arsip.php" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Upload ke Halaman Arsip
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Buat Janji -->
+    <div class="modal fade" id="buatJanjiModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Buat Janji Temu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="jadwal.php">
+                    <input type="hidden" name="action" value="add_jadwal">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Pilih Pengajuan</label>
+                            <select name="id_pengajuan" class="form-select" required>
+                                <option value="">Pilih Pengajuan</option>
+                                <?php 
+                                $pengajuan_for_jadwal = getData('Pengajuan', '*', '1=1', 'id_pengajuan DESC');
+                                foreach ($pengajuan_for_jadwal as $p): 
+                                ?>
+                                    <option value="<?= $p['id_pengajuan'] ?>">
+                                        #<?= $p['id_pengajuan'] ?> - <?= htmlspecialchars($p['jenis_pengajuan']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tanggal & Waktu</label>
+                            <input type="datetime-local" name="tanggal_jadwal" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kegiatan</label>
+                            <input type="text" name="kegiatan" class="form-control" 
+                                   placeholder="Contoh: Konsultasi, Penandatanganan, dll" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Keterangan</label>
+                            <textarea name="keterangan" class="form-control" rows="3" 
+                                      placeholder="Keterangan tambahan (opsional)"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calendar-plus me-2"></i>Buat Janji
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- JavaScript -->
     <script>

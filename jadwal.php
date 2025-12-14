@@ -24,13 +24,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// Ambil data jadwal dengan info pengajuan
-$jadwal_list = getData(
-    'Jadwal j LEFT JOIN Pengajuan p ON j.id_pengajuan=p.id_pengajuan',
-    'j.id_jadwal, j.id_pengajuan, j.tanggal_jadwal, j.kegiatan, j.keterangan, p.jenis_pengajuan',
-    '1=1',
-    'j.tanggal_jadwal ASC'
-);
+// Ambil data jadwal dengan info pengajuan dan client
+// Admin lihat semua, User hanya lihat jadwal dari pengajuan mereka
+$where_jadwal = "1=1";
+if (!$is_admin) {
+    // User hanya lihat jadwal dari pengajuan yang terkait dengan client mereka
+    // Atau pengajuan yang dibuat oleh mereka (jika ada id_user di Pengajuan)
+    $where_jadwal = "p.id_user = " . (int)$current_user['id_user'] . " OR p.id_client IN (
+        SELECT id_client FROM Client WHERE id_client IN (
+            SELECT id_client FROM Pengajuan WHERE id_user = " . (int)$current_user['id_user'] . "
+        )
+    )";
+}
+
+$query_jadwal = "
+    SELECT 
+        j.id_jadwal, 
+        j.id_pengajuan, 
+        j.tanggal_jadwal, 
+        j.kegiatan, 
+        j.keterangan, 
+        p.jenis_pengajuan,
+        p.id_user,
+        COALESCE(pr.nama_lengkap, pe.nama_perusahaan) AS nama_client,
+        c.email AS email_client,
+        c.nomor_telepon AS telepon_client
+    FROM Jadwal j 
+    LEFT JOIN Pengajuan p ON j.id_pengajuan = p.id_pengajuan
+    LEFT JOIN Client c ON p.id_client = c.id_client
+    LEFT JOIN Pribadi pr ON c.id_client = pr.id_client AND c.jenis_client = 'pribadi'
+    LEFT JOIN Perusahaan pe ON c.id_client = pe.id_client AND c.jenis_client = 'perusahaan'
+    WHERE $where_jadwal
+    ORDER BY j.tanggal_jadwal ASC
+";
+
+$result_jadwal = query($query_jadwal);
+$jadwal_list = [];
+if ($result_jadwal) {
+    while ($row = fetch_array($result_jadwal)) {
+        $jadwal_list[] = $row;
+    }
+}
 
 // Ambil list pengajuan untuk modal
 $pengajuan_list = getData('Pengajuan', '*', '1=1', 'id_pengajuan ASC');
@@ -91,6 +125,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <th>ID</th>
                         <th>ID Pengajuan</th>
                         <th>Jenis Pengajuan</th>
+                        <?php if($is_admin): ?>
+                            <th>Client</th>
+                            <th>Kontak</th>
+                        <?php endif; ?>
                         <th>Tanggal Jadwal</th>
                         <th>Kegiatan</th>
                         <th>Keterangan</th>
@@ -99,21 +137,45 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </thead>
                 <tbody>
                 <?php if(empty($jadwal_list)): ?>
-                    <tr><td colspan="<?= $is_admin ? 7 : 6 ?>" class="text-center">Tidak ada data</td></tr>
+                    <tr><td colspan="<?= $is_admin ? 9 : 6 ?>" class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
+                        <span class="text-muted">Tidak ada jadwal</span>
+                    </td></tr>
                 <?php else: ?>
                     <?php foreach($jadwal_list as $j): ?>
                     <tr>
                         <td><?= htmlspecialchars($j['id_jadwal']) ?></td>
                         <td><?= htmlspecialchars($j['id_pengajuan']) ?></td>
-                        <td><?= htmlspecialchars($j['jenis_pengajuan']) ?></td>
-                        <td><?= htmlspecialchars($j['tanggal_jadwal']) ?></td>
-                        <td><?= htmlspecialchars($j['kegiatan']) ?></td>
-                        <td><?= htmlspecialchars($j['keterangan']) ?></td>
+                        <td><?= htmlspecialchars($j['jenis_pengajuan'] ?? '-') ?></td>
+                        <?php if($is_admin): ?>
+                            <td><?= htmlspecialchars($j['nama_client'] ?? '-') ?></td>
+                            <td>
+                                <small>
+                                    <div><i class="fas fa-phone me-1"></i><?= htmlspecialchars($j['telepon_client'] ?? '-') ?></div>
+                                    <?php if($j['email_client']): ?>
+                                        <div><i class="fas fa-envelope me-1"></i><?= htmlspecialchars($j['email_client']) ?></div>
+                                    <?php endif; ?>
+                                </small>
+                            </td>
+                        <?php endif; ?>
+                        <td>
+                            <?php 
+                            if ($j['tanggal_jadwal']) {
+                                echo date('d-m-Y H:i', strtotime($j['tanggal_jadwal']));
+                            } else {
+                                echo '-';
+                            }
+                            ?>
+                        </td>
+                        <td><?= htmlspecialchars($j['kegiatan'] ?? '-') ?></td>
+                        <td><?= htmlspecialchars($j['keterangan'] ?? '-') ?></td>
                         <?php if($is_admin): ?>
                         <td>
                             <a href="jadwal.php?delete=<?= $j['id_jadwal'] ?>" 
                                class="btn btn-sm btn-danger" 
-                               onclick="return confirm('Yakin hapus?')">Hapus</a>
+                               onclick="return confirm('Yakin hapus?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
                         </td>
                         <?php endif; ?>
                     </tr>

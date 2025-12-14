@@ -19,9 +19,11 @@ if (isset($_GET['logout'])) {
 }
 
 // Filter berdasarkan user (jika bukan admin, hanya tampilkan transaksi miliknya)
-// Untuk sekarang, semua user dapat melihat semua transaksi
-// Filter dapat ditambahkan kemudian jika diperlukan berdasarkan relasi User-Client
 $where_clause = "1=1";
+if (!$is_admin) {
+    // User hanya lihat transaksi dari pengajuan yang dibuat oleh mereka
+    $where_clause = "p.id_user = " . (int)$current_user['id_user'];
+}
 
 // Ambil data transaksi dengan JOIN ke Pengajuan untuk mendapatkan jenis_pengajuan
 $query = "
@@ -35,7 +37,8 @@ $query = "
         t.keterangan,
         t.created_at,
         p.jenis_pengajuan,
-        p.deskripsi AS deskripsi_pengajuan
+        p.deskripsi AS deskripsi_pengajuan,
+        p.id_user
     FROM Transaksi t
     LEFT JOIN Pengajuan p ON t.id_pengajuan = p.id_pengajuan
     WHERE $where_clause

@@ -22,53 +22,63 @@
                     <i class="fas fa-chart-line me-2"></i>Dashboard
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link <?= ($current_page == 'client.php') ? 'active' : '' ?>" href="client.php">
-                    <i class="fas fa-user-tie me-2"></i>Client
-                </a>
-            </li>
+            <!-- Menu untuk Admin -->
+            <?php if ($is_admin): ?>
+                <li class="nav-item">
+                    <a class="nav-link <?= ($current_page == 'management_client.php') ? 'active' : '' ?>" href="management_client.php">
+                        <i class="fas fa-users-cog me-2"></i>Management Client
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= ($current_page == 'client.php') ? 'active' : '' ?>" href="client.php">
+                        <i class="fas fa-user-tie me-2"></i>Data Client
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link <?= ($current_page == 'pengajuan.php') ? 'active' : '' ?>" href="pengajuan.php">
                         <i class="fas fa-file-upload me-2"></i>Pengajuan
                     </a>
                 </li>
-
                 <li class="nav-item">
                     <a class="nav-link <?= ($current_page == 'transaksi.php') ? 'active' : '' ?>" href="transaksi.php">
                         <i class="fas fa-money-check-alt me-2"></i>Transaksi
                     </a>
                 </li>
-
                 <li class="nav-item">
                     <a class="nav-link <?= ($current_page == 'jadwal.php') ? 'active' : '' ?>" href="jadwal.php">
                         <i class="fas fa-calendar-alt me-2"></i>Jadwal
                     </a>
                 </li>
-
                 <li class="nav-item">
                     <a class="nav-link <?= ($current_page == 'arsip.php') ? 'active' : '' ?>" href="arsip.php">
                         <i class="fas fa-folder-open me-2"></i>Arsip File
                     </a>
                 </li>
-                <?php if ($is_admin): ?>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="fas fa-users-cog me-2"></i>Manage Client
-                    </a>
-                </li>
-                <?php endif; ?>
-
                 <li class="nav-item">
                     <a class="nav-link <?= ($current_page == 'riwayat.php') ? 'active' : '' ?>" href="riwayat.php">
                         <i class="fas fa-history me-2"></i>Riwayat Transaksi
                     </a>
                 </li>
-
+            <?php else: ?>
+                <!-- Menu untuk User -->
                 <li class="nav-item">
-                    <a class="nav-link <?= ($current_page == 'konsultasi.php') ? 'active' : '' ?>" href="konsultasi.php">
-                        <i class="fas fa-comments me-2"></i>Konsultasi Online
+                    <a class="nav-link <?= ($current_page == 'pengajuan.php') ? 'active' : '' ?>" href="pengajuan.php">
+                        <i class="fas fa-file-upload me-2"></i>Pengajuan Saya
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= ($current_page == 'riwayat.php') ? 'active' : '' ?>" href="riwayat.php">
+                        <i class="fas fa-history me-2"></i>Riwayat Transaksi
+                    </a>
+                </li>
+            <?php endif; ?>
+            
+            <!-- Menu untuk Semua User -->
+            <li class="nav-item">
+                <a class="nav-link <?= ($current_page == 'konsultasi.php') ? 'active' : '' ?>" href="konsultasi.php">
+                    <i class="fas fa-comments me-2"></i>Konsultasi Online
+                </a>
+            </li>
 
                 <li class="nav-item">
                     <a class="nav-link <?= ($current_page == 'profil.php') ? 'active' : '' ?>" href="profil.php">

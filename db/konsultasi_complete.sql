@@ -81,3 +81,4 @@ LEFT JOIN User u ON cm.id_pengirim = u.id_user;
 -- INSERT INTO Konsultasi (id_client, id_user, jenis_konsultasi, topik, pesan, tanggal_konsultasi, status) 
 -- VALUES (1, 1, 'chat', 'Konsultasi Akta Jual Beli', 'Saya ingin berkonsultasi mengenai pembuatan akta jual beli tanah', NOW(), 'berlangsung');
 
+
