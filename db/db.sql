@@ -130,3 +130,4 @@ CREATE TABLE Transaksi (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_pengajuan) REFERENCES Pengajuan(id_pengajuan)
 );
+

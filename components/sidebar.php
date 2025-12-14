@@ -1,3 +1,7 @@
+<link rel="stylesheet" href="styles/sidebar.css">
+<link rel="stylesheet" href="styles/dashboard.css">
+
+
 <!-- sidebar.php -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">

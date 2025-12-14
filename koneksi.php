@@ -67,11 +67,13 @@ function start_session() {
     }
 }
 
+
+
 // Fungsi untuk cek apakah user sudah login
-// function is_logged_in() {
-//     start_session();
-//     return isset($_SESSION['user_id']);
-// }
+function is_logged_in() {
+    start_session();
+    return isset($_SESSION['user_id']);
+}
 
 // Fungsi untuk mendapatkan user yang sedang login
 function get_logged_in_user() {
@@ -134,14 +136,16 @@ function sanitize($data) {
     return $data;
 }
 
-// Fungsi untuk hash password
+// Fungsi untuk hash password (TIDAK DIENKRIPSI - untuk development saja)
 function hash_password($password) {
-    return password_hash($password, PASSWORD_DEFAULT);
+    // Langsung return password tanpa enkripsi
+    return $password;
 }
 
-// Fungsi untuk verify password
-function verify_password($password, $hash) {
-    return password_verify($password, $hash);
+// Fungsi untuk verify password (TIDAK DIENKRIPSI - untuk development saja)
+function verify_password($password, $stored_password) {
+    // Bandingkan langsung tanpa enkripsi
+    return $password === $stored_password;
 }
 
 // Fungsi untuk validasi email

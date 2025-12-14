@@ -16,10 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($result && num_rows($result) > 0) {
             $user = fetch_array($result);
             
-            // Debug: Check if password hash is valid
-            if (empty($user['password']) || strlen($user['password']) < 20) {
-                $login_error = 'Password di database tidak valid. Silakan reset password.';
-            } else if (verify_password($password, $user['password'])) {
+            // Verifikasi password tanpa enkripsi
+            if (verify_password($password, $user['password'])) {
                 start_session();
                 $_SESSION['user_id'] = $user['id_user'];
                 $_SESSION['username'] = $user['username'];
@@ -30,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 header('Location: dashboard.php');
                 exit;
             } else {
-                $login_error = 'Username atau password salah. Pastikan password yang Anda masukkan benar.';
+                $login_error = 'Username atau password salah.';
             }
         } else {
             $login_error = 'Username tidak ditemukan';
@@ -59,8 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
     if (empty($password)) {
         $register_errors[] = 'Password harus diisi';
-    } else if (strlen($password) < 8) {
-        $register_errors[] = 'Password minimal 8 karakter';
+    } else if (strlen($password) < 3) {
+        $register_errors[] = 'Password minimal 3 karakter';
     }
     if ($password !== $confirm_password) {
         $register_errors[] = 'Password dan konfirmasi password tidak cocok';
@@ -74,11 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($check_result && num_rows($check_result) > 0) {
             $register_error = 'Username sudah terdaftar';
         } else {
-            $hashed_password = hash_password($password);
+            // Password tidak dienkripsi - langsung simpan
+            $password_escaped = escape($password);
             $nama_escaped = escape($nama_lengkap);
             $role = 'user';
             
-            $insert_query = "INSERT INTO User (username, password, nama_lengkap, role) VALUES ('$username_escaped', '$hashed_password', '$nama_escaped', '$role')";
+            $insert_query = "INSERT INTO User (username, password, nama_lengkap, role) VALUES ('$username_escaped', '$password_escaped', '$nama_escaped', '$role')";
             
             if (query($insert_query)) {
                 $user_id = insert_id();
@@ -151,12 +150,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <div class="alert alert-danger">
                     <?php echo htmlspecialchars($login_error); ?>
                     <br><br>
-                    <small>
-                        <strong>Masalah dengan password?</strong><br>
-                        Jika Anda baru pertama kali login atau password tidak bekerja, 
-                        <a href="update_passwords.php" style="color: #6A85FF; text-decoration: underline;">klik di sini untuk update password</a> 
-                        atau gunakan password default: <code>password</code>
-                    </small>
                 </div>
             <?php endif; ?>
             
@@ -238,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </label>
                     <div class="input-group">
                         <input type="password" id="registerPassword" name="password" class="form-control" 
-                               placeholder="Minimal 8 karakter" required>
+                               placeholder="Minimal 3 karakter" required>
                         <button type="button" class="toggle-password" data-target="registerPassword">
                             <i class="fas fa-eye"></i>
                         </button>

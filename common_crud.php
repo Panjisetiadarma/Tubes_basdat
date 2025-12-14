@@ -12,9 +12,17 @@ if (!function_exists('escape')) {
 
 // Fungsi insert generic
 function insertData($table, $data) {
-    $columns = implode(',', array_keys($data));
-    $values = implode(',', array_map(fn($v) => "'" . escape($v) . "'", array_values($data)));
-    $query = "INSERT INTO $table ($columns) VALUES ($values)";
+    $columns = [];
+    $values = [];
+    foreach ($data as $k => $v) {
+        $columns[] = $k;
+        if ($v === null) {
+            $values[] = 'NULL';
+        } else {
+            $values[] = "'" . escape($v) . "'";
+        }
+    }
+    $query = "INSERT INTO $table (" . implode(',', $columns) . ") VALUES (" . implode(',', $values) . ")";
     return query($query);
 }
 
@@ -22,7 +30,11 @@ function insertData($table, $data) {
 function updateData($table, $data, $where) {
     $set = [];
     foreach ($data as $k => $v) {
-        $set[] = "$k='" . escape($v) . "'";
+        if ($v === null) {
+            $set[] = "$k=NULL";
+        } else {
+            $set[] = "$k='" . escape($v) . "'";
+        }
     }
     $query = "UPDATE $table SET " . implode(',', $set) . " WHERE $where";
     return query($query);
