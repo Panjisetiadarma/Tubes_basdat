@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 13 Des 2025 pada 15.37
+-- Waktu pembuatan: 14 Des 2025 pada 09.57
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -35,6 +35,23 @@ CREATE TABLE `arsip_file` (
   `tipe_file` varchar(50) DEFAULT NULL,
   `ukuran_file` int(11) DEFAULT NULL,
   `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `chat_message`
+--
+
+CREATE TABLE `chat_message` (
+  `id_message` int(11) NOT NULL,
+  `id_konsultasi` int(11) NOT NULL,
+  `id_pengirim` int(11) NOT NULL,
+  `pesan` text NOT NULL,
+  `tipe` enum('text','file','image') DEFAULT 'text',
+  `file_url` varchar(500) DEFAULT NULL,
+  `waktu_kirim` timestamp NOT NULL DEFAULT current_timestamp(),
+  `dibaca` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -88,6 +105,28 @@ INSERT INTO `jadwal` (`id_jadwal`, `id_pengajuan`, `tanggal_jadwal`, `kegiatan`,
 -- --------------------------------------------------------
 
 --
+-- Struktur dari tabel `konsultasi`
+--
+
+CREATE TABLE `konsultasi` (
+  `id_konsultasi` int(11) NOT NULL,
+  `id_client` int(11) NOT NULL,
+  `id_notaris` int(11) DEFAULT NULL,
+  `id_ppat` int(11) DEFAULT NULL,
+  `id_user` int(11) DEFAULT NULL,
+  `jenis_konsultasi` enum('chat','video_call','janji_temu') NOT NULL,
+  `topik` varchar(200) DEFAULT NULL,
+  `pesan` text DEFAULT NULL,
+  `tanggal_konsultasi` datetime DEFAULT NULL,
+  `durasi` int(11) DEFAULT NULL,
+  `status` enum('terjadwal','berlangsung','selesai','dibatalkan') DEFAULT 'terjadwal',
+  `link_meeting` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Struktur dari tabel `notaris`
 --
 
@@ -124,19 +163,20 @@ CREATE TABLE `pengajuan` (
   `deskripsi` text DEFAULT NULL,
   `tanggal_pengajuan` date DEFAULT NULL,
   `tanggal_selesai` date DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `id_user` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data untuk tabel `pengajuan`
 --
 
-INSERT INTO `pengajuan` (`id_pengajuan`, `id_client`, `id_notaris`, `id_ppat`, `id_status`, `jenis_pengajuan`, `deskripsi`, `tanggal_pengajuan`, `tanggal_selesai`, `created_at`) VALUES
-(1, 1, 1, NULL, 1, 'Akta Jual Beli Tanah', 'Pengajuan akta jual beli tanah di Jakarta Selatan', '2024-01-15', NULL, '2025-12-12 18:57:50'),
-(2, 2, 1, NULL, 2, 'Legalisasi Dokumen', 'Legalisasi ijazah dan transkrip nilai', '2024-01-20', NULL, '2025-12-12 18:57:50'),
-(3, 3, 2, NULL, 3, 'Surat Kuasa', 'Surat kuasa untuk pengurusan dokumen', '2024-01-25', NULL, '2025-12-12 18:57:50'),
-(4, 1, 1, NULL, 4, 'Akta Hibah', 'Akta hibah tanah dari orang tua', '2024-02-01', NULL, '2025-12-12 18:57:50'),
-(5, 2, 2, NULL, 2, 'Akta Perjanjian Sewa', 'Perjanjian sewa menyewa ruko', '2024-02-10', NULL, '2025-12-12 18:57:50');
+INSERT INTO `pengajuan` (`id_pengajuan`, `id_client`, `id_notaris`, `id_ppat`, `id_status`, `jenis_pengajuan`, `deskripsi`, `tanggal_pengajuan`, `tanggal_selesai`, `created_at`, `id_user`) VALUES
+(1, 1, 1, NULL, 1, 'Akta Jual Beli Tanah', 'Pengajuan akta jual beli tanah di Jakarta Selatan', '2024-01-15', NULL, '2025-12-12 18:57:50', NULL),
+(2, 2, 1, NULL, 2, 'Legalisasi Dokumen', 'Legalisasi ijazah dan transkrip nilai', '2024-01-20', NULL, '2025-12-12 18:57:50', NULL),
+(3, 3, 2, NULL, 3, 'Surat Kuasa', 'Surat kuasa untuk pengurusan dokumen', '2024-01-25', NULL, '2025-12-12 18:57:50', NULL),
+(4, 1, 1, NULL, 4, 'Akta Hibah', 'Akta hibah tanah dari orang tua', '2024-02-01', NULL, '2025-12-12 18:57:50', NULL),
+(5, 2, 2, NULL, 2, 'Akta Perjanjian Sewa', 'Perjanjian sewa menyewa ruko', '2024-02-10', NULL, '2025-12-12 18:57:50', NULL);
 
 -- --------------------------------------------------------
 
@@ -257,16 +297,121 @@ CREATE TABLE `user` (
   `password` varchar(255) NOT NULL,
   `nama_lengkap` varchar(100) NOT NULL,
   `role` enum('AdminNotaris','user','notaris','ppat','staff') NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `foto_profil` varchar(255) DEFAULT NULL,
+  `nomor_telepon` varchar(20) DEFAULT NULL,
+  `alamat` text DEFAULT NULL,
+  `bio` text DEFAULT NULL,
+  `last_login` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data untuk tabel `user`
 --
 
-INSERT INTO `user` (`id_user`, `username`, `password`, `nama_lengkap`, `role`, `created_at`) VALUES
-(1, 'admin', '$2y$10$3CKqEDcej8R2OTtsYpS.PeZEVtkfLdDp9dpNy2TieA/Y1r5eH7TXC', 'Administrator Notaris', 'AdminNotaris', '2025-12-12 18:57:50'),
-(2, 'user', '$2y$10$4KOKjyxwR3fIU1dAN3FH7.P77/0/mNcOcjQKcbL/wyZSxPSUK9JLa', 'User Test', 'user', '2025-12-12 18:57:50');
+INSERT INTO `user` (`id_user`, `username`, `password`, `nama_lengkap`, `role`, `created_at`, `foto_profil`, `nomor_telepon`, `alamat`, `bio`, `last_login`) VALUES
+(1, 'admin', 'admin123', 'Administrator Notaris', 'AdminNotaris', '2025-12-12 18:57:50', NULL, NULL, NULL, NULL, '2025-12-14 08:21:02'),
+(2, 'user', 'user123', 'User Test', 'user', '2025-12-12 18:57:50', NULL, NULL, NULL, NULL, NULL),
+(3, 'ujiw', 'panji123', 'panji', 'user', '2025-12-14 08:26:02', NULL, NULL, NULL, NULL, '2025-12-14 08:26:06');
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in struktur untuk tampilan `view_chat_message`
+-- (Lihat di bawah untuk tampilan aktual)
+--
+CREATE TABLE `view_chat_message` (
+`id_message` int(11)
+,`id_konsultasi` int(11)
+,`id_pengirim` int(11)
+,`pesan` text
+,`tipe` enum('text','file','image')
+,`file_url` varchar(500)
+,`waktu_kirim` timestamp
+,`dibaca` tinyint(1)
+,`nama_pengirim` varchar(100)
+,`username_pengirim` varchar(50)
+,`role_pengirim` enum('AdminNotaris','user','notaris','ppat','staff')
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in struktur untuk tampilan `view_client_management`
+-- (Lihat di bawah untuk tampilan aktual)
+--
+CREATE TABLE `view_client_management` (
+`id_client` int(11)
+,`jenis_client` enum('pribadi','perusahaan')
+,`nomor_telepon` varchar(20)
+,`email` varchar(100)
+,`alamat` text
+,`created_at` timestamp
+,`nama_lengkap` varchar(100)
+,`nik` varchar(20)
+,`tempat_lahir` varchar(50)
+,`tanggal_lahir` date
+,`nama_perusahaan` varchar(100)
+,`npwp` varchar(30)
+,`nama_direktur` varchar(100)
+,`nama` varchar(100)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in struktur untuk tampilan `view_konsultasi_lengkap`
+-- (Lihat di bawah untuk tampilan aktual)
+--
+CREATE TABLE `view_konsultasi_lengkap` (
+`id_konsultasi` int(11)
+,`id_client` int(11)
+,`id_notaris` int(11)
+,`id_ppat` int(11)
+,`id_user` int(11)
+,`jenis_konsultasi` enum('chat','video_call','janji_temu')
+,`topik` varchar(200)
+,`pesan` text
+,`tanggal_konsultasi` datetime
+,`durasi` int(11)
+,`status` enum('terjadwal','berlangsung','selesai','dibatalkan')
+,`link_meeting` varchar(500)
+,`created_at` timestamp
+,`nama_client` varchar(100)
+,`email_client` varchar(100)
+,`telepon_client` varchar(20)
+,`nama_notaris` varchar(100)
+,`nama_ppat` varchar(100)
+,`staff_nama` varchar(100)
+,`staff_username` varchar(50)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Struktur untuk view `view_chat_message`
+--
+DROP TABLE IF EXISTS `view_chat_message`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_chat_message`  AS SELECT `cm`.`id_message` AS `id_message`, `cm`.`id_konsultasi` AS `id_konsultasi`, `cm`.`id_pengirim` AS `id_pengirim`, `cm`.`pesan` AS `pesan`, `cm`.`tipe` AS `tipe`, `cm`.`file_url` AS `file_url`, `cm`.`waktu_kirim` AS `waktu_kirim`, `cm`.`dibaca` AS `dibaca`, `u`.`nama_lengkap` AS `nama_pengirim`, `u`.`username` AS `username_pengirim`, `u`.`role` AS `role_pengirim` FROM (`chat_message` `cm` left join `user` `u` on(`cm`.`id_pengirim` = `u`.`id_user`)) ;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur untuk view `view_client_management`
+--
+DROP TABLE IF EXISTS `view_client_management`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_client_management`  AS SELECT `c`.`id_client` AS `id_client`, `c`.`jenis_client` AS `jenis_client`, `c`.`nomor_telepon` AS `nomor_telepon`, `c`.`email` AS `email`, `c`.`alamat` AS `alamat`, `c`.`created_at` AS `created_at`, `p`.`nama_lengkap` AS `nama_lengkap`, `p`.`nik` AS `nik`, `p`.`tempat_lahir` AS `tempat_lahir`, `p`.`tanggal_lahir` AS `tanggal_lahir`, `pr`.`nama_perusahaan` AS `nama_perusahaan`, `pr`.`npwp` AS `npwp`, `pr`.`nama_direktur` AS `nama_direktur`, coalesce(`p`.`nama_lengkap`,`pr`.`nama_perusahaan`) AS `nama` FROM ((`client` `c` left join `pribadi` `p` on(`c`.`id_client` = `p`.`id_client` and `c`.`jenis_client` = 'pribadi')) left join `perusahaan` `pr` on(`c`.`id_client` = `pr`.`id_client` and `c`.`jenis_client` = 'perusahaan')) ;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur untuk view `view_konsultasi_lengkap`
+--
+DROP TABLE IF EXISTS `view_konsultasi_lengkap`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_konsultasi_lengkap`  AS SELECT `k`.`id_konsultasi` AS `id_konsultasi`, `k`.`id_client` AS `id_client`, `k`.`id_notaris` AS `id_notaris`, `k`.`id_ppat` AS `id_ppat`, `k`.`id_user` AS `id_user`, `k`.`jenis_konsultasi` AS `jenis_konsultasi`, `k`.`topik` AS `topik`, `k`.`pesan` AS `pesan`, `k`.`tanggal_konsultasi` AS `tanggal_konsultasi`, `k`.`durasi` AS `durasi`, `k`.`status` AS `status`, `k`.`link_meeting` AS `link_meeting`, `k`.`created_at` AS `created_at`, `c`.`nama` AS `nama_client`, `c`.`email` AS `email_client`, `c`.`nomor_telepon` AS `telepon_client`, `n`.`nama_notaris` AS `nama_notaris`, `pp`.`nama_ppat` AS `nama_ppat`, `u`.`nama_lengkap` AS `staff_nama`, `u`.`username` AS `staff_username` FROM ((((`konsultasi` `k` left join (select `c`.`id_client` AS `id_client`,`c`.`jenis_client` AS `jenis_client`,`c`.`nomor_telepon` AS `nomor_telepon`,`c`.`email` AS `email`,`c`.`alamat` AS `alamat`,coalesce(`p`.`nama_lengkap`,`pr`.`nama_perusahaan`) AS `nama` from ((`client` `c` left join `pribadi` `p` on(`c`.`id_client` = `p`.`id_client` and `c`.`jenis_client` = 'pribadi')) left join `perusahaan` `pr` on(`c`.`id_client` = `pr`.`id_client` and `c`.`jenis_client` = 'perusahaan'))) `c` on(`k`.`id_client` = `c`.`id_client`)) left join `notaris` `n` on(`k`.`id_notaris` = `n`.`id_notaris`)) left join `ppat` `pp` on(`k`.`id_ppat` = `pp`.`id_ppat`)) left join `user` `u` on(`k`.`id_user` = `u`.`id_user`)) ;
 
 --
 -- Indexes for dumped tables
@@ -280,6 +425,14 @@ ALTER TABLE `arsip_file`
   ADD KEY `id_pengajuan` (`id_pengajuan`);
 
 --
+-- Indeks untuk tabel `chat_message`
+--
+ALTER TABLE `chat_message`
+  ADD PRIMARY KEY (`id_message`),
+  ADD KEY `id_konsultasi` (`id_konsultasi`),
+  ADD KEY `id_pengirim` (`id_pengirim`);
+
+--
 -- Indeks untuk tabel `client`
 --
 ALTER TABLE `client`
@@ -291,6 +444,16 @@ ALTER TABLE `client`
 ALTER TABLE `jadwal`
   ADD PRIMARY KEY (`id_jadwal`),
   ADD KEY `id_pengajuan` (`id_pengajuan`);
+
+--
+-- Indeks untuk tabel `konsultasi`
+--
+ALTER TABLE `konsultasi`
+  ADD PRIMARY KEY (`id_konsultasi`),
+  ADD KEY `id_client` (`id_client`),
+  ADD KEY `id_notaris` (`id_notaris`),
+  ADD KEY `id_ppat` (`id_ppat`),
+  ADD KEY `id_user` (`id_user`);
 
 --
 -- Indeks untuk tabel `notaris`
@@ -307,7 +470,8 @@ ALTER TABLE `pengajuan`
   ADD KEY `id_client` (`id_client`),
   ADD KEY `id_notaris` (`id_notaris`),
   ADD KEY `id_ppat` (`id_ppat`),
-  ADD KEY `id_status` (`id_status`);
+  ADD KEY `id_status` (`id_status`),
+  ADD KEY `id_user` (`id_user`);
 
 --
 -- Indeks untuk tabel `perusahaan`
@@ -363,6 +527,12 @@ ALTER TABLE `arsip_file`
   MODIFY `id_file` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT untuk tabel `chat_message`
+--
+ALTER TABLE `chat_message`
+  MODIFY `id_message` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT untuk tabel `client`
 --
 ALTER TABLE `client`
@@ -373,6 +543,12 @@ ALTER TABLE `client`
 --
 ALTER TABLE `jadwal`
   MODIFY `id_jadwal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT untuk tabel `konsultasi`
+--
+ALTER TABLE `konsultasi`
+  MODIFY `id_konsultasi` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT untuk tabel `notaris`
@@ -420,7 +596,7 @@ ALTER TABLE `transaksi`
 -- AUTO_INCREMENT untuk tabel `user`
 --
 ALTER TABLE `user`
-  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
@@ -433,10 +609,26 @@ ALTER TABLE `arsip_file`
   ADD CONSTRAINT `arsip_file_ibfk_1` FOREIGN KEY (`id_pengajuan`) REFERENCES `pengajuan` (`id_pengajuan`) ON DELETE CASCADE;
 
 --
+-- Ketidakleluasaan untuk tabel `chat_message`
+--
+ALTER TABLE `chat_message`
+  ADD CONSTRAINT `chat_message_ibfk_1` FOREIGN KEY (`id_konsultasi`) REFERENCES `konsultasi` (`id_konsultasi`) ON DELETE CASCADE,
+  ADD CONSTRAINT `chat_message_ibfk_2` FOREIGN KEY (`id_pengirim`) REFERENCES `user` (`id_user`) ON DELETE CASCADE;
+
+--
 -- Ketidakleluasaan untuk tabel `jadwal`
 --
 ALTER TABLE `jadwal`
   ADD CONSTRAINT `jadwal_ibfk_1` FOREIGN KEY (`id_pengajuan`) REFERENCES `pengajuan` (`id_pengajuan`) ON DELETE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `konsultasi`
+--
+ALTER TABLE `konsultasi`
+  ADD CONSTRAINT `konsultasi_ibfk_1` FOREIGN KEY (`id_client`) REFERENCES `client` (`id_client`) ON DELETE CASCADE,
+  ADD CONSTRAINT `konsultasi_ibfk_2` FOREIGN KEY (`id_notaris`) REFERENCES `notaris` (`id_notaris`) ON DELETE SET NULL,
+  ADD CONSTRAINT `konsultasi_ibfk_3` FOREIGN KEY (`id_ppat`) REFERENCES `ppat` (`id_ppat`) ON DELETE SET NULL,
+  ADD CONSTRAINT `konsultasi_ibfk_4` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE SET NULL;
 
 --
 -- Ketidakleluasaan untuk tabel `notaris`
@@ -451,7 +643,8 @@ ALTER TABLE `pengajuan`
   ADD CONSTRAINT `pengajuan_ibfk_1` FOREIGN KEY (`id_client`) REFERENCES `client` (`id_client`),
   ADD CONSTRAINT `pengajuan_ibfk_2` FOREIGN KEY (`id_notaris`) REFERENCES `notaris` (`id_notaris`),
   ADD CONSTRAINT `pengajuan_ibfk_3` FOREIGN KEY (`id_ppat`) REFERENCES `ppat` (`id_ppat`),
-  ADD CONSTRAINT `pengajuan_ibfk_4` FOREIGN KEY (`id_status`) REFERENCES `status_pengajuan` (`id_status`);
+  ADD CONSTRAINT `pengajuan_ibfk_4` FOREIGN KEY (`id_status`) REFERENCES `status_pengajuan` (`id_status`),
+  ADD CONSTRAINT `pengajuan_ibfk_5` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE SET NULL;
 
 --
 -- Ketidakleluasaan untuk tabel `perusahaan`
