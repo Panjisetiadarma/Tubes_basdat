@@ -15,17 +15,7 @@
     padding: 1rem 0;
 }
 
-.sidebar-toggle {
-    background: rgba(106, 133, 255, 0.1);
-    border: 1px solid rgba(106, 133, 255, 0.2);
-    color: var(--primary-blue);
-    border-radius: 8px;
-    padding: 0.5rem 0.8rem;
-}
 
-.sidebar-toggle:hover {
-    background: rgba(106, 133, 255, 0.2);
-}
 
 .user-menu {
     background: transparent;
