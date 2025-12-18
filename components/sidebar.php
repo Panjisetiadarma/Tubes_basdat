@@ -6,9 +6,15 @@
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="user-profile">
-            <div class="avatar-lg">
-                <i class="fas fa-user"></i>
-            </div>
+           <?php if (!empty($current_user['foto_profil']) && file_exists($current_user['foto_profil'])): ?>
+                                        <img src="<?= htmlspecialchars($current_user['foto_profil']) ?>" 
+                                             alt="Foto Profil" 
+                                             style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+                                    <?php else: ?>
+                                        <div style="width: 80px; height: 80px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-user fa-2x text-muted"></i>
+                                        </div>
+                                    <?php endif; ?>
             <h5 id="sidebarUserName"><?php echo htmlspecialchars($current_user['nama_lengkap']); ?></h5>
             <p class="text-muted"><?php echo htmlspecialchars($current_user['username']); ?></p>
         </div>
